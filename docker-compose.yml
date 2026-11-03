@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  pve-abuse-guard:
+    build: .
+    container_name: pve-abuse-guard
+    restart: unless-stopped
+    network_mode: "host" # Required if connecting to 127.0.0.1 on host Proxmox
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - LOG_LEVEL=INFO

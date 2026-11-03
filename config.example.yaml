@@ -1,0 +1,98 @@
+# ====================================================================
+# PVE Abuse Guard - Cấu hình phát hiện đào coin (CPU Mining) Proxmox VE
+# Kiến trúc In-Memory thuần túy (Không ghi database/file xuống đĩa)
+# ====================================================================
+
+proxmox:
+  # Địa chỉ IP hoặc hostname của node Proxmox (chạy trực tiếp trên node thì để 127.0.0.1)
+  host: "127.0.0.1"
+  port: 8006
+
+  # Tài khoản và API Token Proxmox
+  # Chỉ cần quyền PVEAuditor (Read-Only) để giám sát CPU
+  user: "abuse-monitor@pam"
+  token_name: "pve-guard"
+  token_value: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+  # Bỏ qua xác thực SSL (Proxmox mặc định dùng SSL tự ký self-signed)
+  verify_ssl: false
+  timeout_seconds: 15
+
+  # Link gốc mở Proxmox Web UI (để chèn link bấm trực tiếp vào Discord embed)
+  # Ví dụ: "https://pve.mycompany.vn:8006" hoặc để trống sẽ tự lấy theo host:port
+  web_ui_url: ""
+
+mining_rule:
+  # Bật/tắt luật phát hiện đào coin
+  enabled: true
+
+  # Ngưỡng CPU cảnh báo (%) - Mặc định: >= 90%
+  cpu_threshold_percent: 90.0
+
+  # Thời gian duy trì liên tục tối thiểu để tính là vi phạm (phút) - Mặc định: 30 phút
+  duration_minutes: 30
+
+  # Chu kỳ quét Proxmox API (giây) - Mặc định: 60s/lần
+  poll_interval_seconds: 60
+
+  # Tỷ lệ mẫu vượt ngưỡng trong khoảng thời gian để kết luận (0.85 = 85% số lần quét)
+  # Chống báo động giả nếu CPU có khoảnh khắc tụt 89% rồi lại lên 100%
+  min_samples_ratio: 0.85
+
+  # Ngưỡng CPU đánh dấu mức độ CRITICAL (báo động đỏ)
+  critical_cpu_percent: 98.0
+
+  # Có giám sát cả LXC Container hay không (false = chỉ giám sát QEMU KVM VM)
+  include_lxc: true
+
+  # Danh sách VMID loại trừ (không bao giờ cảnh báo, ví dụ VM nội bộ, backup, build server)
+  exclude_vmids:
+    - 9999
+
+discord:
+  # URL Discord Webhook (tạo trong Channel Settings -> Integrations -> Webhooks)
+  webhook_url: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+  
+  username: "PVE Abuse Guard"
+  avatar_url: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/proxmox.png"
+
+  # Thời gian chờ (Cooldown) giữa 2 lần gửi cảnh báo cho cùng một máy ảo (phút)
+  # Tránh spam kênh chat khi khách hàng tiếp tục đào coin
+  cooldown_minutes: 60
+
+  # Gửi thông báo "Đã hết vi phạm" (Resolved) khi CPU của máy ảo đã hạ nhiệt
+  notify_on_resolved: true
+
+  # Số lần đo liên tiếp CPU ở mức bình thường trước khi xác nhận máy ảo đã hết vi phạm
+  resolved_stabilize_samples: 2
+
+  # ID Role hoặc User cần mention khi có cảnh báo mức CRITICAL (để trống nếu không dùng)
+  # Cách lấy: Bật Developer Mode trong Discord -> Chuột phải vào Role/User -> Copy ID
+  mention_role_id: ""
+  mention_user_id: ""
+
+  # Số lần thử lại tối đa khi Discord bị quá tải (Rate limit 429)
+  max_retries: 3
+
+auto_action:
+  # Can thiệp tự động (Mặc định: TẮT hoàn toàn, chỉ gửi thông báo)
+  enabled: false
+
+  # Chế độ chạy thử nghiệm (dry_run: true = chỉ ghi log và báo Discord chứ không tắt máy thật)
+  dry_run: true
+
+  # Hành động thực hiện khi vi phạm kéo dài: "suspend" (tạm dừng) hoặc "stop" (tắt nguồn)
+  # LƯU Ý: Nếu bật chế độ này thật (dry_run: false), API Token cần quyền VM.PowerMgmt
+  action: "suspend"
+
+  # Thực thi hành động sau N lần cảnh báo liên tiếp
+  violations_before_action: 2
+
+  # Whitelist VMID tuyệt đối không bao giờ bị đình chỉ tự động
+  whitelist_vmids:
+    - 100
+    - 200
+
+logging:
+  level: "INFO" # DEBUG, INFO, WARNING, ERROR
+  # file: "/var/log/pve-abuse-guard.log" # Để trống để log ra stdout/journald

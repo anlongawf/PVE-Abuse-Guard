@@ -1,0 +1,23 @@
+[Unit]
+Description=PVE Abuse Guard - In-Memory CPU Mining Detector for Proxmox VE
+Documentation=https://github.com/CheckCoin/pve-abuse-guard
+After=network.target pve-cluster.service pvedaemon.service
+Wants=pve-cluster.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/pve-abuse-guard
+ExecStart=/opt/pve-abuse-guard/.venv/bin/python3 -m src.main -c /opt/pve-abuse-guard/config.yaml
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=65535
+
+# Hardening
+ProtectSystem=full
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
