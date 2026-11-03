@@ -266,8 +266,17 @@ def main() -> None:
                 samples = tracker.get_samples_in_window(vmid, 30 * 60.0, sim_time)
                 logger.debug(f"[Phút {m+1}] CPU: 95% -> Tích luỹ mẫu: {len(samples)}/30 mẫu, chưa đủ 30 phút hoặc đang trong Cooldown")
 
-        # Phase 3: CPU drops to 10% (miner stopped)
-        logger.info("--- Giai đoạn 3: Khách tắt tool đào coin, CPU hạ nhiệt về 10% ---")
+        # Phase 3: So sánh chế độ Cooldown Enabled vs Cooldown Disabled
+        logger.info("--- So sánh: Khi Cooldown = True vs Cooldown = False ở phút tiếp theo ---")
+        sim_time += 60.0
+        data_next = {"vmid": vmid, "name": vm_name, "node": "pve1", "type": "qemu", "cpu_percent": 96.0, "uptime_seconds": 3600 + (37 * 60), "mem_bytes": 1024**3, "maxmem_bytes": 2 * 1024**3}
+        ev_with_cooldown = detector.evaluate_vm(data_next, current_time=sim_time, cooldown_enabled=True, cooldown_seconds=3600.0)
+        ev_without_cooldown = detector.evaluate_vm(data_next, current_time=sim_time, cooldown_enabled=False, cooldown_seconds=3600.0)
+        logger.info(f"👉 Khi cooldown_enabled=True  : Kết quả = {ev_with_cooldown} (ĐÃ CHẶN SPAM)")
+        logger.info(f"👉 Khi cooldown_enabled=False : Kết quả = {ev_without_cooldown.event_type if ev_without_cooldown else None} (GỬI TIẾP CẢNH BÁO)")
+
+        # Phase 4: CPU drops to 10% (miner stopped)
+        logger.info("--- Giai đoạn 4: Khách tắt tool đào coin, CPU hạ nhiệt về 10% ---")
         for m in range(37, 40):
             sim_time += 60.0
             data = {"vmid": vmid, "name": vm_name, "node": "pve1", "type": "qemu", "cpu_percent": 10.0, "uptime_seconds": 3600 + (m * 60), "mem_bytes": 1024**3, "maxmem_bytes": 2 * 1024**3}
