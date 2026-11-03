@@ -67,6 +67,7 @@ class DiscordConfig:
     webhook_url: str = ""
     username: str = "PVE Abuse Guard"
     avatar_url: str = "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/proxmox.png"
+    cooldown_enabled: bool = False  # Tự động khóa cảnh báo lặp lại cho cùng 1 VM (Mặc định: False)
     cooldown_minutes: int = 60
     notify_on_resolved: bool = True
     resolved_stabilize_samples: int = 2  # Needs 2 consecutive normal samples before marking resolved
@@ -192,6 +193,9 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
                 "avatar_url",
                 "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/proxmox.png",
             ),
+        ),
+        cooldown_enabled=_env_to_bool(
+            os.getenv("COOLDOWN_ENABLED"), dc_raw.get("cooldown_enabled", False)
         ),
         cooldown_minutes=_env_to_int(
             os.getenv("COOLDOWN_MINUTES"), dc_raw.get("cooldown_minutes", 60)

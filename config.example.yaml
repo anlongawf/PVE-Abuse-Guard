@@ -56,8 +56,13 @@ discord:
   username: "PVE Abuse Guard"
   avatar_url: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/proxmox.png"
 
-  # Thời gian chờ (Cooldown) giữa 2 lần gửi cảnh báo cho cùng một máy ảo (phút)
-  # Tránh spam kênh chat khi khách hàng tiếp tục đào coin
+  # Chống spam & Cooldown: Tự động khóa cảnh báo lặp lại cho cùng 1 VM trong thời gian Cooldown
+  # Mặc định: false (nếu false: mỗi chu kỳ quét VM vẫn vi phạm sẽ gửi cảnh báo)
+  # Nếu true: sau khi cảnh báo, VM sẽ vào chế độ Cooldown và không gửi lại trong cooldown_minutes
+  cooldown_enabled: false
+
+  # Thời gian chờ (Cooldown) giữa 2 lần gửi cảnh báo cho cùng một máy ảo (phút) - Mặc định: 60 phút
+  # (Chỉ có tác dụng khi cooldown_enabled: true)
   cooldown_minutes: 60
 
   # Gửi thông báo "Đã hết vi phạm" (Resolved) khi CPU của máy ảo đã hạ nhiệt

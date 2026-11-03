@@ -114,7 +114,7 @@ def test_critical_severity_when_above_98():
     assert last_event.severity == "critical"
 
 
-def test_cooldown_suppresses_duplicate_alerts():
+def test_cooldown_suppresses_duplicate_alerts_when_enabled():
     detector, tracker = create_detector(threshold=90.0, duration_minutes=5, poll_interval=60)
     start_time = 1000.0
 
@@ -131,17 +131,52 @@ def test_cooldown_suppresses_duplicate_alerts():
             "maxmem_bytes": 2000,
             "uptime_seconds": 3600 + (i * 60),
         }
-        event = detector.evaluate_vm(vm_data, current_time=now, cooldown_seconds=3600.0)
+        event = detector.evaluate_vm(
+            vm_data, current_time=now, cooldown_enabled=True, cooldown_seconds=3600.0
+        )
         if event:
-            # Simulate daemon recording that alert was sent
             tracker.record_alert_sent(101, now)
 
-    # 2. Next sample at minute 6 (still 95% CPU, but inside 3600s cooldown)
+    # 2. Next sample at minute 6 (still 95% CPU, cooldown_enabled=True -> suppressed)
     now_min6 = start_time + (6 * 60.0)
     vm_data["cpu_percent"] = 96.0
-    event_cooldown = detector.evaluate_vm(vm_data, current_time=now_min6, cooldown_seconds=3600.0)
-    # Should be None due to cooldown
+    event_cooldown = detector.evaluate_vm(
+        vm_data, current_time=now_min6, cooldown_enabled=True, cooldown_seconds=3600.0
+    )
     assert event_cooldown is None
+
+
+def test_cooldown_disabled_does_not_suppress_alerts():
+    detector, tracker = create_detector(threshold=90.0, duration_minutes=5, poll_interval=60)
+    start_time = 1000.0
+
+    # 1. Trigger first alert
+    for i in range(6):
+        now = start_time + (i * 60.0)
+        vm_data = {
+            "vmid": 101,
+            "name": "vps-miner",
+            "node": "pve1",
+            "type": "qemu",
+            "cpu_percent": 95.0,
+            "mem_bytes": 1000,
+            "maxmem_bytes": 2000,
+            "uptime_seconds": 3600 + (i * 60),
+        }
+        event = detector.evaluate_vm(
+            vm_data, current_time=now, cooldown_enabled=False, cooldown_seconds=3600.0
+        )
+        if event:
+            tracker.record_alert_sent(101, now)
+
+    # 2. Next sample at minute 6 with cooldown_enabled=False -> should alert again!
+    now_min6 = start_time + (6 * 60.0)
+    vm_data["cpu_percent"] = 96.0
+    event_no_cooldown = detector.evaluate_vm(
+        vm_data, current_time=now_min6, cooldown_enabled=False, cooldown_seconds=3600.0
+    )
+    assert event_no_cooldown is not None
+    assert event_no_cooldown.event_type == "VIOLATION"
 
 
 def test_resolved_alert_after_cpu_drops():

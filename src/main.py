@@ -80,6 +80,7 @@ class PVEAbuseDaemon:
 
         running_vmids: List[int] = []
         alerts_sent = 0
+        cooldown_on = self.config.discord.cooldown_enabled
         cooldown_sec = self.config.discord.cooldown_minutes * 60.0
         stabilize_samples = self.config.discord.resolved_stabilize_samples
 
@@ -90,6 +91,7 @@ class PVEAbuseDaemon:
             event = self.detector.evaluate_vm(
                 vm_data=vm,
                 current_time=now,
+                cooldown_enabled=cooldown_on,
                 cooldown_seconds=cooldown_sec,
                 resolved_stabilize_samples=stabilize_samples,
             )
@@ -179,6 +181,11 @@ def main() -> None:
         "-c", "--config", help="Path to YAML configuration file (default: config.yaml)"
     )
     parser.add_argument(
+        "--setup",
+        action="store_true",
+        help="Run interactive configuration setup wizard and exit",
+    )
+    parser.add_argument(
         "--test-webhook", action="store_true", help="Send a test notification to Discord and exit"
     )
     parser.add_argument(
@@ -202,6 +209,11 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    if args.setup:
+        from src.setup_wizard import run_setup
+        run_setup(output_path=args.config or "config.yaml")
+        sys.exit(0)
 
     config = load_config(args.config)
     if args.dry_run:
@@ -239,7 +251,12 @@ def main() -> None:
         for m in range(5, 37):
             sim_time += 60.0
             data = {"vmid": vmid, "name": vm_name, "node": "pve1", "type": "qemu", "cpu_percent": 95.0, "uptime_seconds": 3600 + (m * 60), "mem_bytes": 1024**3, "maxmem_bytes": 2 * 1024**3}
-            ev = detector.evaluate_vm(data, current_time=sim_time, cooldown_seconds=config.discord.cooldown_minutes * 60.0)
+            ev = detector.evaluate_vm(
+                data,
+                current_time=sim_time,
+                cooldown_enabled=True,
+                cooldown_seconds=config.discord.cooldown_minutes * 60.0,
+            )
             if ev:
                 logger.warning(f"🚨 [Phút {m+1}] VIOLATION PHÁT HIỆN! Đạt điều kiện vi phạm!")
                 embed = discord.build_embed(ev, ui_url=f"https://pve1:8006/#v1:0:=qemu/{vmid}")

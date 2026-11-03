@@ -45,6 +45,7 @@ class MiningDetector:
         self,
         vm_data: Dict[str, Any],
         current_time: Optional[float] = None,
+        cooldown_enabled: bool = False,
         cooldown_seconds: float = 3600.0,
         resolved_stabilize_samples: int = 2,
     ) -> Optional[AlertEvent]:
@@ -118,8 +119,10 @@ class MiningDetector:
 
                     duration = now - viol.first_seen_at
 
-                    # Check in-memory cooldown
-                    in_cooldown = self.tracker.is_in_cooldown(vmid, cooldown_seconds, now)
+                    # Check in-memory cooldown nếu tính năng cooldown_enabled được bật
+                    in_cooldown = False
+                    if cooldown_enabled:
+                        in_cooldown = self.tracker.is_in_cooldown(vmid, cooldown_seconds, now)
 
                     if not in_cooldown:
                         severity = "critical" if current_cpu >= self.config.critical_cpu_percent else "warning"

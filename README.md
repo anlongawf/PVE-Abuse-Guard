@@ -71,8 +71,19 @@ pip install -r requirements.txt
 
 ### Bước 3: Cấu Hình Hệ Thống
 
-Copy file cấu hình mẫu:
+Bạn có thể cấu hình nhanh bằng **1 trong 2 cách**:
 
+#### Cách 1: Sử dụng Trình cài đặt tương tác (Khuyên dùng)
+Chạy script wizard tương tác để hệ thống hỏi từng bước và tự động tạo `config.yaml`:
+```bash
+python3 setup.py
+```
+> [!NOTE]
+> Trình cài đặt sẽ hỏi bạn từng thông số (Host, Token, Discord Webhook, CPU %).  
+> Riêng tính năng **Chống spam & Cooldown** (tự động khóa cảnh báo lặp lại cho cùng 1 VM trong thời gian Cooldown), hệ thống sẽ **hỏi bạn chọn True hay False** và đặt **mặc định là `False`**.
+
+#### Cách 2: Cấu hình thủ công
+Copy file cấu hình mẫu và chỉnh sửa:
 ```bash
 cp config.example.yaml config.yaml
 nano config.yaml
@@ -99,7 +110,8 @@ mining_rule:
 
 discord:
   webhook_url: "https://discord.com/api/webhooks/xxxx/yyyy" # Webhook kênh Discord của bạn
-  cooldown_minutes: 60        # Tránh spam lặp lại
+  cooldown_enabled: false     # Bật/tắt khóa cảnh báo lặp lại (Mặc định: false)
+  cooldown_minutes: 60        # Thời gian Cooldown nếu bật cooldown_enabled (phút)
   notify_on_resolved: true    # Báo khi VM đã hạ nhiệt
 ```
 
